@@ -25,46 +25,47 @@ var googlestore = (function(){
         datastore: DatastoreServiceFactory.getDatastoreService(),
 
         // creates a new entity
-        entity: function() {
-            if(arguments.length === 2) {
-                var kind = arguments[0],
-                    data = arguments[1],
-                    entity = new Entity(kind);
+        // (kind, [opt] keyName/keyId, [opt] properties)
+        entity: function(arg0, arg1, arg2) {
+            var data, entity;
+            if (arg2) {
+                entity = new Entity(arg0, arg1);
+                data = arg2;                    
             } else {
-                var kind = arguments[0],
-                    keyName = arguments[1],
-                    data = arguments[2],
-                    entity = new Entity(kind, keyName);
+                entity = new Entity(arg0);
+                data = arg1;
             }
-
-            for(var i in data) {
-                // google's datastore doesn't like native arrays.
-                // it needs a Collection for properties with
-                // multiple values
-                if(data[i] instanceof Array)
-                    data[i] = java.util.Arrays.asList(data[i]);
-                entity.setProperty(i, data[i]);
-            }
+            this.set(entity, data);
             return entity;
         },
+        // google's datastore doesn't like native arrays.
+        // it needs a Collection for properties with
+        // multiple values
         set: function(entity, data) {
-            for(var i in data) {
-                if(data[i] instanceof Array)
+            for (var i in data) {
+                if (data[i] instanceof Array)
                     data[i] = java.util.Arrays.asList(data[i]);
                 entity.setProperty(i, data[i]);
             }
         },
-        put: function(entity) {
+        // (key)
+        // (entity) 
+        // (kind, [opt] properties)
+        // (kind, [opt] keyName/keyId, [opt] properties)
+        put: function(arg0, arg1, arg2) {
+            var entity = arg1 ? this.entity(arg0, arg1, arg2) : arg0;
             return this.datastore.put(entity);
         },
-        // mimics JDO functionality
-        get: function(key) {
-            if(!key)
-                return null;
-            var entity = this.datastore.get(key);
-            return entity;
+        // (key) 
+        // (kind, [opt] keyId/keyName)
+        get: function(arg0, arg1) {
+            var key = arg1 ? KeyFactory.createKey(arg0, arg1) : arg0;
+            return this.datastore.get(key);
         },
-        del: function(key) {
+        // (key) 
+        // (kind, [opt] keyId/keyName)
+        del: function(arg0, arg1) {
+            var key = arg1 ? KeyFactory.createKey(arg0, arg1) : arg0;
             this.datastore["delete"](key);
         },
         query: function(kind) {
@@ -81,16 +82,16 @@ var googlestore = (function(){
                 q.addSort(propertyName, Query.SortDirection[direction]);
                 return self;
             }
-            function limit(limit) {
-                options = options.limit(limit);
+            function limit(n) {
+                options = options.limit(n);
                 return self;
             }
-            function offset(offset) {
-                options = options.offset(offset);
+            function offset(n) {
+                options = options.offset(n);
                 return self;
             }
-            function fetch(num) {
-                if (num) limit(num);
+            function fetch(n) {
+                if (n) limit(n);
                 var preparedQuery = googlestore.datastore.prepare(q);
                 return preparedQuery.asList(options).toArray();
             }
@@ -98,7 +99,7 @@ var googlestore = (function(){
                 var preparedQuery = googlestore.datastore.prepare(q);
                 return preparedQuery.countEntities(options);
             }
-            return self = {
+            self = {
                 filter : filter,
                 sort   : sort,
                 limit  : limit,
@@ -106,6 +107,7 @@ var googlestore = (function(){
                 fetch  : fetch,
                 count  : count
             };
+            return self;
         },
         // abstracting everything as possible
         createKey: function(kind, id) {
