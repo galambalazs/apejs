@@ -16,13 +16,12 @@ var index = {
         }
     },
     post: function(request, response) {
-        var person = googlestore.entity("Person", {
+        // FIXME - abstract put so it uses transactions
+        googlestore.put("Person", {
             "name"  : request.getParameter("name"),
             "gender": request.getParameter("gender"),
             "age":    parseInt(request.getParameter("age"), 10)
         });
-        // FIXME - abstract put so it uses transactions
-        googlestore.put(person);
         response.sendRedirect("/");
     }
 };
@@ -85,8 +84,7 @@ var test = {
 var person = {
     get: function(request, response, matches) {
         var id     = parseInt(matches[1], 10);
-        var key    = googlestore.createKey("Person", id);
-        var person = googlestore.get(key);
+        var person = googlestore.get("Person", id);
         require("./skins/person.js", {
                 "print" : printer(response),
                 "person": person
@@ -97,8 +95,7 @@ var person = {
 var del = {
     get: function(request, response, matches) {
         var id  = parseInt(matches[1], 10);
-        var key = googlestore.createKey("Person", id);
-        googlestore.del(key);
+        googlestore.del("Person", id);
         response.sendRedirect("/");
     }
 }
